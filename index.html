@@ -216,6 +216,7 @@ section.page{padding:28px clamp(16px,3vw,40px) 60px;max-width:1200px;width:100%}
     <button class="on" data-v="art"><span>📦</span>Artículos</button>
     <button data-v="fuera"><span>🤝</span>Prestado</button>
     <button data-v="hist"><span>🕘</span>Historial</button>
+    <button id="btnSec2" class="hide"><span>🔐</span>Seguridad</button>
     <button id="btnOut2"><span>🚪</span>Salir</button>
   </nav>
 </div>
@@ -467,8 +468,9 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catc
 var ADMIN_EMAIL = 'futurmovil.com@gmail.com';
 function escH(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 function closeModals() { document.querySelectorAll('.back').forEach(function (b) { b.remove(); }); }
-function secBtn() { var b = $('#btnSec'); if (b) b.classList.toggle('hide', String($('#who').textContent || '').trim().toLowerCase() !== ADMIN_EMAIL); }
+function secBtn() { var no = String($('#who').textContent || '').trim().toLowerCase() !== ADMIN_EMAIL; ['#btnSec', '#btnSec2'].forEach(function (id) { var x = $(id); if (x) x.classList.toggle('hide', no); }); }
 $('#btnSec').onclick = function () { secModal(); };
+$('#btnSec2').onclick = function () { secModal(); };
 async function secModal() {
   closeModals();
   var m = modal('<h3>🔐 Seguridad</h3><div id="secBody"><p style="opacity:.7">Cargando…</p></div><button class="btn" style="width:100%;margin-top:14px" onclick="closeModals()">Cerrar</button>');
