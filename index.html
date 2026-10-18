@@ -154,6 +154,7 @@ section.page{padding:28px clamp(16px,3vw,40px) 60px;max-width:1200px;width:100%}
 }
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 <div class="aurora"><i></i><i></i><i></i></div><div class="grain"></div>
@@ -176,7 +177,7 @@ section.page{padding:28px clamp(16px,3vw,40px) 60px;max-width:1200px;width:100%}
         <button type="button" data-m="rec">Recuperar</button>
       </div>
       <label for="em">Correo</label>
-      <input id="em" type="email" autocomplete="username" required>
+      <input id="em" type="email" autocomplete="username">
       <div id="fPass"><label for="pw">Contraseña</label>
       <input id="pw" type="password" autocomplete="current-password" minlength="6"></div>
       <div id="fCode" class="hide"><label for="cd">Código recibido por correo</label>
@@ -199,7 +200,8 @@ section.page{padding:28px clamp(16px,3vw,40px) 60px;max-width:1200px;width:100%}
     <button class="nav" data-v="fuera">🤝 Prestado <em id="badge" class="hide">0</em></button>
     <button class="nav" data-v="hist">🕘 Historial</button>
     <div class="sp"></div>
-    <button class="nav" id="btnInstall2">⬇️ Instalar app</button>
+    <button class="nav hide" id="btnSec">🔐 Seguridad</button>
+      <button class="nav" id="btnInstall2">⬇️ Instalar app</button>
     <button class="nav" id="btnShare2">📤 Compartir app</button>
     <button class="nav" id="btnOut">🚪 Salir</button>
     <div class="who" id="who"></div>
@@ -392,7 +394,7 @@ async function load() {
 }
 function enter(r) {
   S.token = r.token; S.email = r.email; ls('prest_tok', r.token); ls('prest_em', r.email);
-  $('#login').classList.add('hide'); $('#main').classList.remove('hide'); $('#who').textContent = r.email; load();
+  $('#login').classList.add('hide'); $('#main').classList.remove('hide'); $('#who').textContent = r.email; load(); secBtn();
 }
 function logout(silent) {
   S.token = null; ls('prest_tok', null); $('#main').classList.add('hide'); $('#login').classList.remove('hide');
@@ -415,6 +417,7 @@ $('#lform').onsubmit = async function (e) {
   e.preventDefault(); var em = $('#em').value.trim(), pw = $('#pw').value, btn = $('#lgo'), old = btn.textContent, msg = $('#lmsg');
   msg.style.color = 'var(--bad)'; msg.textContent = ''; btn.innerHTML = '<span class="spin"></span>'; btn.disabled = true;
   var r;
+  if (S.mode !== 'login' && !em) { btn.textContent = old; btn.disabled = false; return (msg.textContent = 'Escribe tu correo'); }
   if (S.mode === 'login') r = await api('login', { email: em, clave: pw });
   else if (S.mode === 'reg') r = await api('registro', { email: em, clave: pw });
   else if (!codeSent) { r = await api('pedirCodigo', { email: em }); if (r.ok) { codeSent = true; msg.style.color = 'var(--ok)'; msg.textContent = 'Si el correo existe, te hemos enviado un código. Escríbelo con tu nueva contraseña.'; old = 'Cambiar contraseña'; } btn.textContent = old; btn.disabled = false; return; }
@@ -459,6 +462,41 @@ document.addEventListener('visibilitychange', function () { if (!document.hidden
 /* ---------- arranque ---------- */
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});
 (function () { var t = ls('prest_tok'), em = ls('prest_em'); if (em) $('#em').value = em; if (t) { S.token = t; enter({ token: t, email: em || '' }); } })();
+
+/* ---------- Google Authenticator (admin) ---------- */
+var ADMIN_EMAIL = 'futurmovil.com@gmail.com';
+function escH(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function closeModals() { document.querySelectorAll('.back').forEach(function (b) { b.remove(); }); }
+function secBtn() { var b = $('#btnSec'); if (b) b.classList.toggle('hide', String($('#who').textContent || '').trim().toLowerCase() !== ADMIN_EMAIL); }
+$('#btnSec').onclick = function () { secModal(); };
+async function secModal() {
+  closeModals();
+  var m = modal('<h3>🔐 Seguridad</h3><div id="secBody"><p style="opacity:.7">Cargando…</p></div><button class="btn" style="width:100%;margin-top:14px" onclick="closeModals()">Cerrar</button>');
+  var st = await api('totpStatus', {});
+  var el = m.querySelector('#secBody');
+  if (!st.ok) { el.textContent = st.error || 'No se pudo cargar'; return; }
+  el.innerHTML = '<h4 style="margin:8px 0 6px">Google Authenticator</h4>';
+  var b = el.querySelector('#tOn') || el.querySelector('#tRe'); if (b) b.onclick = totpSetup;
+  var off = el.querySelector('#tOff');
+  if (off) off.onclick = async function () { if (!confirm('¿Desactivar el acceso con Google Authenticator?')) return; var r = await api('totpDisable', {}); toast(r.ok ? 'Desactivado' : r.error); secModal(); };
+}
+async function totpSetup() {
+  var d = await api('totpStart', {});
+  if (!d.ok) return toast(d.error);
+  closeModals();
+  var m = modal('<h3>Vincular Google Authenticator</h3><p style="font-size:14px">1. En Google Authenticator pulsa <b>+</b> y luego <b>Escanear un código QR</b>:</p>' +
+    '<div style="text-align:center;margin:12px 0"><div id="tqr" style="background:#fff;padding:12px;border-radius:14px;display:inline-block"></div></div>' +
+    '<p style="font-size:12px;opacity:.8">¿Estás en este mismo móvil? <a href="' + escH(d.uri) + '" style="color:inherit;text-decoration:underline">Abrir en Authenticator</a> o elige <b>Introducir clave de configuración</b> y pega esta clave: <b style="word-break:break-all;user-select:all">' + escH(d.secret) + '</b></p>' +
+    '<p style="font-size:14px">2. Escribe el código de 6 cifras que te sale:</p><input id="tcd" inputmode="numeric" maxlength="6" autocomplete="one-time-code" style="width:100%;text-align:center;font-size:22px;letter-spacing:6px">' +
+    '<p id="tmsg" style="color:var(--bad);min-height:1.2em;font-size:13px"></p><div style="display:flex;gap:8px"><button class="btn" style="flex:1" onclick="closeModals()">Cancelar</button><button class="btn pri" style="flex:1" id="tok">Activar</button></div>');
+  if (window.QRCode) new QRCode(m.querySelector('#tqr'), { text: d.uri, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M });
+  else m.querySelector('#tqr').textContent = 'Usa la clave de abajo';
+  m.querySelector('#tok').onclick = async function () {
+    var r = await api('totpConfirm', { code: m.querySelector('#tcd').value.trim() });
+    if (!r.ok) return (m.querySelector('#tmsg').textContent = r.error);
+    closeModals(); toast('Google Authenticator activado 🔐');
+  };
+}
 </script>
 </body>
 </html>
