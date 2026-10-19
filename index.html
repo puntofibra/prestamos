@@ -477,7 +477,9 @@ async function secModal() {
   var st = await api('totpStatus', {});
   var el = m.querySelector('#secBody');
   if (!st.ok) { el.textContent = st.error || 'No se pudo cargar'; return; }
-  el.innerHTML = '<h4 style="margin:8px 0 6px">Google Authenticator</h4>';
+  el.innerHTML = '<h4 style="margin:8px 0 6px">Google Authenticator</h4>' + (st.activo
+    ? '<p style="font-size:14px">✅ <b>Activado.</b> Para entrar deja el <b>correo vacío</b> y pon en la contraseña el <b>código de 6 cifras</b> de Google Authenticator.</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn sm" id="tRe">Volver a vincular</button><button class="btn sm" id="tOff">Desactivar</button></div>'
+    : '<p style="font-size:14px">Entra sin escribir el correo: solo con el código de 6 cifras de Google Authenticator. Tu correo y contraseña siguen funcionando igual.</p><button class="btn pri" id="tOn" style="margin-top:8px">Configurar</button>');
   var b = el.querySelector('#tOn') || el.querySelector('#tRe'); if (b) b.onclick = totpSetup;
   var off = el.querySelector('#tOff');
   if (off) off.onclick = async function () { if (!confirm('¿Desactivar el acceso con Google Authenticator?')) return; var r = await api('totpDisable', {}); toast(r.ok ? 'Desactivado' : r.error); secModal(); };
