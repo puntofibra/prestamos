@@ -468,7 +468,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catc
 var ADMIN_EMAIL = 'futurmovil.com@gmail.com';
 function escH(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 function closeModals() { document.querySelectorAll('.back').forEach(function (b) { b.remove(); }); }
-function secBtn() { var no = String($('#who').textContent || '').trim().toLowerCase() !== ADMIN_EMAIL; ['#btnSec', '#btnSec2'].forEach(function (id) { var x = $(id); if (x) x.classList.toggle('hide', no); }); }
+function secBtn() { var no = String($('#who').textContent || '').trim().toLowerCase() !== 'futurmovil.com@gmail.com'; ['#btnSec', '#btnSec2'].forEach(function (id) { var x = $(id); if (x) x.classList.toggle('hide', no); }); }
 $('#btnSec').onclick = function () { secModal(); };
 $('#btnSec2').onclick = function () { secModal(); };
 async function secModal() {
